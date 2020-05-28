@@ -103,12 +103,7 @@ int main(void)
 	lcd_init();
 	uart_init();
 	PORTF_init();
-	
-	while(1)
-	{
-		uart_main_loop();
-	}
-		
+	__enable_irq();	
 }
 
 
@@ -307,17 +302,21 @@ void uart_init(void)
 	GPIO_PORTA_AFSEL_R |= 0x03;
 	GPIO_PORTA_PCTL_R =  (GPIO_PORTA_PCTL_R&0xFFFFFF00)+0x11;//pmc0&pmc1 
 	GPIO_PORTA_DEN_R |= 0x03;//digital enable pins 0:1
-	
-	
+		
 	UART0_CTL_R &= ~0x01; //disable uart by clearing enable bit 
 	
-	//baud rate =16,000,000/16*9600=104.1666666667
-	UART0_IBRD_R =104;
-	//fbr =(.16666667*64)+.5=11
-	UART0_FBRD_R =11;
+	//baud rate =80,000,000/16*9600=520.833
+	UART0_IBRD_R =520;
+	//fbr =(.833*64)+.5=53
+	UART0_FBRD_R =53;
 	UART0_LCRH_R = (0x0070); //0011_0000 no parity 8bits
 	UART0_CC_R = 0; //internal clock source
 	UART0_CTL_R = 0x301; //enable , send and receive 
+	
+	UART0_ICR_R = 0x10;
+	UART0_IM_R = 0x10;
+	NVIC_PRI1_R = (NVIC_PRI1_R & 0xFF00FFFF ) | 0x00000000; //set prioity for uart0 to 0
+	NVIC_EN0_R |= (1<<5);
 }
 
 char uart_readChar(void)
@@ -345,7 +344,7 @@ void set_pass(int roomNum)
 		rooms[roomNum].pass[i]= uart_readChar(); //get password bits
 	}
 }
-void uart_main_loop(void)
+void UART0_Handler(void)
 {
 	enum room_status roomSt;
 	unsigned char roomNum;
