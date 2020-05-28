@@ -315,7 +315,7 @@ void uart_init(void)
 	
 	UART0_ICR_R = 0x10;
 	UART0_IM_R = 0x10;
-	NVIC_PRI1_R = (NVIC_PRI1_R & 0xFF00FFFF ) | 0x00000000; //set prioity for uart0 to 0
+	NVIC_PRI1_R = (NVIC_PRI1_R & 0xFFFF00FF ) | 0x00000000; //set prioity for uart0 to 0
 	NVIC_EN0_R |= (1<<5);
 }
 
