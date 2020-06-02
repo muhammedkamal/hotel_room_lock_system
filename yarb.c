@@ -10,7 +10,7 @@
 enum room_status { reserved =1 ,free=2 ,clean =3};
 enum door_status {closed =0 ,open=1};
 
-
+void hardCoded(void);
 
 //keybad
 void keypad_init(void);
@@ -35,19 +35,16 @@ char uart_readChar(void);
 void uart_writeChar(char data);
 void printString(char *String);
 void set_pass(int roomNum);
-void uart_main_loop(void);
 
 
 // Doors and rooms
 
-//enum room_status doorScreen(unsigned char);
 
 typedef struct {
 	unsigned char roomNum;
 	enum room_status roomSt;
 	enum door_status doorSt;	
-	unsigned char pass[4]; //global array password
-
+	unsigned char pass[4]; 
 }room;
 
 room rooms[5];
@@ -103,7 +100,32 @@ int main(void)
 	lcd_init();
 	uart_init();
 	PORTF_init();
-	__enable_irq();	
+	__enable_irq();
+	while(1)
+	{
+		if (rooms[1].roomSt==reserved)
+			{
+				LCD_command(1);	/* clear display */
+				LCD_command(0x84); /*to start write password from the center of the screen*/
+				LCD_Data_string("reserved");
+				GPIO_PORTF_DATA_R =0x02; // red for reserved //solonoid of door closed
+			}
+			else if (rooms[1].roomSt==free)
+			{
+				LCD_command(1);	/* clear display */
+				LCD_command(0x86); /*to start write password from the center of the screen*/
+				LCD_Data_string("free");
+				GPIO_PORTF_DATA_R |=0x02; //solonid of door closed
+			}
+			else if (rooms[1].roomSt==clean)
+			{
+				LCD_command(1);	/* clear display */
+				LCD_command(0x83); /*to start write password from the center of the screen*/
+				LCD_Data_string("room service");
+				GPIO_PORTF_DATA_R =0; //red led indecates door opened
+			}				
+	}
+
 }
 
 
@@ -378,15 +400,7 @@ void UART0_Handler(void)
 			set_pass(roomNum-1);	
 			rooms[roomNum-1].roomSt=reserved;
 			rooms[roomNum-1].doorSt=closed;			
-			printString("Room reserved successfully :\t");
-			if (roomNum-1==1)
-			{
-				LCD_command(1);	/* clear display */
-				LCD_command(0x84); /*to start write password from the center of the screen*/
-				LCD_Data_string("reserved");
-				GPIO_PORTF_DATA_R =0x08; //yellow red for reserved
-
-			}	
+			printString("Room reserved successfully :\t");	
 			return;
 		}
 		else if (uart_readChar()==2)
@@ -395,13 +409,6 @@ void UART0_Handler(void)
 			//set room status to free and lock the solinoid
 			rooms[roomNum-1].roomSt=free;
 			rooms[roomNum-1].doorSt=closed;
-			if (roomNum-1==1)
-			{
-				LCD_command(1);	/* clear display */
-				LCD_command(0x86); /*to start write password from the center of the screen*/
-				LCD_Data_string("free");
-				GPIO_PORTF_DATA_R =0; //no leds for free
-			}
 			return;
 		}
 		else if (uart_readChar()==3)
@@ -410,14 +417,6 @@ void UART0_Handler(void)
 			//set room status to cleaning and unlock the solinoid
 			rooms[roomNum-1].roomSt=clean;
 			rooms[roomNum-1].doorSt=open;
-			if (roomNum-1==1)
-			{
-				LCD_command(1);	/* clear display */
-				LCD_command(0x83); /*to start write password from the center of the screen*/
-				LCD_Data_string("room service");
-				GPIO_PORTF_DATA_R |=0x02; //red led indecates door opened
-				GPIO_PORTF_DATA_R |=0x04; //green led indecates door opened for room services
-			}
 			return;
 		}
 	}
